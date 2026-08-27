@@ -3,92 +3,271 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minimal Client</title>
+  <title>404 Not Found</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html { width: 100%; height: 100%; background: #0f172a; font-family: sans-serif; }
-
-    /* Launcher UI */
-    #launcher {
+    
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100%;
-      gap: 1.5rem;
+      overflow: hidden;
     }
 
-    button {
-      padding: 14px 32px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #fff;
-      background: #22c55e;
-      border: none;
-      border-radius: 8px;
+    /* 404 Fake Page */
+    #page-container {
+      text-align: center;
+      max-width: 520px;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 5rem;
+      font-weight: 700;
+      color: #58a6ff;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #f0f6fc;
+    }
+
+    p {
+      color: #8b949e;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .decoy-btn {
+      background-color: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      text-decoration: none;
+      transition: 0.2s;
+    }
+    .decoy-btn:hover {
+      background-color: #30363d;
+      border-color: #8b949e;
     }
 
-    button:hover { background: #16a34a; }
-    button:active { transform: scale(0.98); }
+    .decoy-btn.github-btn {
+      background-color: #238636;
+      border-color: rgba(240, 246, 252, 0.1);
+      color: #ffffff;
+      font-weight: 500;
+    }
+    .decoy-btn.github-btn:hover {
+      background-color: #2ea043;
+    }
 
-    /* The viewport for the loaded HTML */
-    #frame {
+    /* Secret ? Button (Bottom Left) */
+    #secret-btn {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      width: 24px;
+      height: 24px;
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #484f58;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s, color 0.2s;
+      user-select: none;
+    }
+    #secret-btn:hover {
+      color: #8b949e;
+      border-color: #8b949e;
+    }
+
+    /* Subtle loading animation for the secret button */
+    @keyframes discrete-pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+    .loading-state {
+      animation: discrete-pulse 1.2s infinite ease-in-out;
+      cursor: default !important;
+      border-color: #30363d !important;
+      color: #58a6ff !important;
+    }
+
+    /* 100% RAW Decoy Modal */
+    #calc-modal {
       display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      color: #000000;
+      padding: 16px;
+      border: 2px solid #000000;
+      font-family: monospace;
+      z-index: 10;
+    }
+
+    /* Fullscreen Game Iframe */
+    #game-frame {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
       border: none;
+      background: #000;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
 
-  <!-- Landing Screen -->
-  <div id="launcher">
-    <button id="playBtn">▶ Play</button>
+  <!-- 404 Disguise -->
+  <div id="page-container">
+    <h1>404</h1>
+    <h2>File or directory not found.</h2>
+    <p>The resource you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+    
+    <div class="button-group">
+      <button class="decoy-btn" id="testRawBtn">Test raw fallback project</button>
+      <a href="https://github.com" class="decoy-btn github-btn">Go back to GitHub</a>
+    </div>
   </div>
 
-  <!-- Execution Container -->
-  <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+  <!-- Discrete Secret Trigger (Bottom Left) -->
+  <button id="secret-btn" title="Help">?</button>
+
+  <!-- 100% RAW Unstyled HTML Calculator -->
+  <div id="calc-modal">
+    <h3>raw_calc_fallback.html</h3>
+    <br>
+    <input type="text" id="calc-screen" value="0" size="18" readonly>
+    <br><br>
+    <div>
+      <button onclick="calcClear()">C</button>
+      <button onclick="calcInput('/')">/</button>
+      <button onclick="calcInput('*')">*</button>
+      <button onclick="calcInput('-')">-</button>
+    </div>
+    <div>
+      <button onclick="calcInput('7')">7</button>
+      <button onclick="calcInput('8')">8</button>
+      <button onclick="calcInput('9')">9</button>
+      <button onclick="calcInput('+')">+</button>
+    </div>
+    <div>
+      <button onclick="calcInput('4')">4</button>
+      <button onclick="calcInput('5')">5</button>
+      <button onclick="calcInput('6')">6</button>
+      <button onclick="calcEqual()">=</button>
+    </div>
+    <div>
+      <button onclick="calcInput('1')">1</button>
+      <button onclick="calcInput('2')">2</button>
+      <button onclick="calcInput('3')">3</button>
+      <button onclick="calcInput('0')">0</button>
+      <button onclick="calcInput('.')">.</button>
+    </div>
+    <br>
+    <button id="calcClose">[ Close Window ]</button>
+  </div>
+
+  <!-- Real Game Frame -->
+  <iframe id="game-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
 
   <script>
-    // URL to the raw HTML file
-    // Example: A raw GitHub file (which has CORS enabled by default)
-    const TARGET_URL = 'https://raw.githubusercontent.com/user/repo/main/game.html';
+    // Configured with your Hugging Face file
+    const TARGET_URL = 'https://huggingface.co/datasets/ynynts/fdhdfjdfhdfhjdfdfjf/resolve/main/tuf.html';
 
-    const playBtn = document.getElementById('playBtn');
-    const launcher = document.getElementById('launcher');
-    const frame = document.getElementById('frame');
+    // 1. Calculator Decoy Logic
+    const calcModal = document.getElementById('calc-modal');
+    const screen = document.getElementById('calc-screen');
 
-    playBtn.addEventListener('click', async () => {
-      playBtn.textContent = 'Loading...';
-      playBtn.disabled = true;
+    document.getElementById('testRawBtn').addEventListener('click', () => {
+      calcModal.style.display = 'block';
+    });
 
+    document.getElementById('calcClose').addEventListener('click', () => {
+      calcModal.style.display = 'none';
+    });
+
+    function calcInput(val) {
+      if (screen.value === '0' && val !== '.') {
+        screen.value = val;
+      } else {
+        screen.value += val;
+      }
+    }
+
+    function calcClear() {
+      screen.value = '0';
+    }
+
+    function calcEqual() {
       try {
-        // 1. Fetch raw HTML
+        screen.value = Function('"use strict";return (' + screen.value + ')')();
+      } catch {
+        screen.value = 'Error';
+      }
+    }
+
+    // 2. Secret Loader Trigger with Anti-Spam & Discrete Loading
+    const secretBtn = document.getElementById('secret-btn');
+    const gameFrame = document.getElementById('game-frame');
+    let isFetching = false;
+
+    secretBtn.addEventListener('click', async () => {
+      // Prevent button spamming if already downloading
+      if (isFetching) return;
+      
+      isFetching = true;
+      secretBtn.textContent = '·';
+      secretBtn.classList.add('loading-state');
+      
+      try {
         const res = await fetch(TARGET_URL);
-        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        if (!res.ok) throw new Error('Could not fetch HTML');
         let html = await res.text();
 
-        // 2. Fix relative asset URLs (optional, points assets to the source domain)
+        // Inject base tag for relative assets
         const baseUrl = TARGET_URL.substring(0, TARGET_URL.lastIndexOf('/') + 1);
         if (!html.includes('<base')) {
           html = `<base href="${baseUrl}">` + html;
         }
 
-        // 3. Create a Blob URL and set it as iframe source
+        // Render Blob in Iframe
         const blob = new Blob([html], { type: 'text/html' });
-        frame.src = URL.createObjectURL(blob);
-
-        // 4. Switch from launcher view to iframe view
-        launcher.style.display = 'none';
-        frame.style.display = 'block';
+        gameFrame.src = URL.createObjectURL(blob);
+        gameFrame.style.display = 'block';
 
       } catch (err) {
-        alert('Failed to load: ' + err.message);
-        playBtn.textContent = '▶ Play';
-        playBtn.disabled = false;
+        console.error(err);
+        // Reset if failed
+        isFetching = false;
+        secretBtn.textContent = '?';
+        secretBtn.classList.remove('loading-state');
       }
     });
   </script>
