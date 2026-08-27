@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,">
   <title>404 Not Found</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -101,7 +102,7 @@
       border-color: #8b949e;
     }
 
-    /* Subtle loading animation for the secret button */
+    /* Subtle loading animation */
     @keyframes discrete-pulse {
       0%, 100% { opacity: 0.3; }
       50% { opacity: 0.8; }
@@ -127,19 +128,6 @@
       font-family: monospace;
       z-index: 10;
     }
-
-    /* Fullscreen Game Iframe */
-    #game-frame {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      border: none;
-      background: #000;
-      z-index: 999;
-    }
   </style>
 </head>
 <body>
@@ -156,7 +144,7 @@
     </div>
   </div>
 
-  <!-- Discrete Secret Trigger (Bottom Left) -->
+  <!-- Discrete Secret Trigger -->
   <button id="secret-btn" title="Help">?</button>
 
   <!-- 100% RAW Unstyled HTML Calculator -->
@@ -194,12 +182,9 @@
     <button id="calcClose">[ Close Window ]</button>
   </div>
 
-  <!-- Real Game Frame -->
-  <iframe id="game-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
-
   <script>
-    // Configured with your Hugging Face file
-    const TARGET_URL = 'https://huggingface.co/datasets/ynynts/fdhdfjdfhdfhjdfdfjf/resolve/main/tuf.html';
+    // Converted direct raw stream link from your Dropbox
+    const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/6tvatn4ybsyapbillh05u/tuf.html?rlkey=phiozo3bjhkvem8puwhq0ufej&st=iln63fwt';
 
     // 1. Calculator Decoy Logic
     const calcModal = document.getElementById('calc-modal');
@@ -233,38 +218,45 @@
       }
     }
 
-    // 2. Secret Loader Trigger with Anti-Spam & Discrete Loading
+    // 2. Secret about:blank Launcher
     const secretBtn = document.getElementById('secret-btn');
-    const gameFrame = document.getElementById('game-frame');
     let isFetching = false;
 
     secretBtn.addEventListener('click', async () => {
-      // Prevent button spamming if already downloading
       if (isFetching) return;
       
       isFetching = true;
       secretBtn.textContent = '·';
       secretBtn.classList.add('loading-state');
+
+      // Instantly open the about:blank tab
+      const blankWindow = window.open('about:blank', '_blank');
       
+      if (!blankWindow) {
+        alert('Please allow popups to launch.');
+        isFetching = false;
+        secretBtn.textContent = '?';
+        secretBtn.classList.remove('loading-state');
+        return;
+      }
+
+      blankWindow.document.write('<p style="font-family:sans-serif;color:#888;padding:20px;">Loading...</p>');
+
       try {
+        // Fetch raw HTML from Dropbox
         const res = await fetch(TARGET_URL);
-        if (!res.ok) throw new Error('Could not fetch HTML');
-        let html = await res.text();
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        const html = await res.text();
 
-        // Inject base tag for relative assets
-        const baseUrl = TARGET_URL.substring(0, TARGET_URL.lastIndexOf('/') + 1);
-        if (!html.includes('<base')) {
-          html = `<base href="${baseUrl}">` + html;
-        }
-
-        // Render Blob in Iframe
-        const blob = new Blob([html], { type: 'text/html' });
-        gameFrame.src = URL.createObjectURL(blob);
-        gameFrame.style.display = 'block';
+        // Inject and run directly in about:blank
+        blankWindow.document.open();
+        blankWindow.document.write(html);
+        blankWindow.document.close();
 
       } catch (err) {
-        console.error(err);
-        // Reset if failed
+        console.error('Fetch failed:', err);
+        blankWindow.document.write('<p style="color:red;padding:20px;">Failed to load raw data.</p>');
+      } finally {
         isFetching = false;
         secretBtn.textContent = '?';
         secretBtn.classList.remove('loading-state');
