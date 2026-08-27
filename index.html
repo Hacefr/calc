@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Client</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; background: #0f172a; font-family: sans-serif; }
+
+    /* Launcher UI */
+    #launcher {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 1.5rem;
+    }
+
+    button {
+      padding: 14px 32px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      background: #22c55e;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover { background: #16a34a; }
+    button:active { transform: scale(0.98); }
+
+    /* The viewport for the loaded HTML */
+    #frame {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Landing Screen -->
+  <div id="launcher">
+    <button id="playBtn">▶ Play</button>
+  </div>
+
+  <!-- Execution Container -->
+  <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+
+  <script>
+    // URL to the raw HTML file
+    // Example: A raw GitHub file (which has CORS enabled by default)
+    const TARGET_URL = 'https://raw.githubusercontent.com/user/repo/main/game.html';
+
+    const playBtn = document.getElementById('playBtn');
+    const launcher = document.getElementById('launcher');
+    const frame = document.getElementById('frame');
+
+    playBtn.addEventListener('click', async () => {
+      playBtn.textContent = 'Loading...';
+      playBtn.disabled = true;
+
+      try {
+        // 1. Fetch raw HTML
+        const res = await fetch(TARGET_URL);
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        let html = await res.text();
+
+        // 2. Fix relative asset URLs (optional, points assets to the source domain)
+        const baseUrl = TARGET_URL.substring(0, TARGET_URL.lastIndexOf('/') + 1);
+        if (!html.includes('<base')) {
+          html = `<base href="${baseUrl}">` + html;
+        }
+
+        // 3. Create a Blob URL and set it as iframe source
+        const blob = new Blob([html], { type: 'text/html' });
+        frame.src = URL.createObjectURL(blob);
+
+        // 4. Switch from launcher view to iframe view
+        launcher.style.display = 'none';
+        frame.style.display = 'block';
+
+      } catch (err) {
+        alert('Failed to load: ' + err.message);
+        playBtn.textContent = '▶ Play';
+        playBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
