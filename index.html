@@ -289,8 +289,8 @@
   </div>
 
   <script>
-    // Updated Direct Dropbox Link
-    const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/rg0vnn3ju44frx4s9y8tn/Launch.html?rlkey=s063qyihs6wqcekpb0jmkiwq2&st=mt7j6equ';
+    // Direct Raw Dropbox Link to your updated client
+    const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/4ybkugp7coohbvvxrsi4j/New.html?rlkey=goi8igjfqzd2svrmjjdg4jj0d&st=xutiizz0';
 
     // 1. Details Decoy Modal Logic
     const calcModal = document.getElementById('calc-modal');
@@ -330,7 +330,7 @@
         return;
       }
 
-      // Shows a convincing error string while the heavy Eaglercraft file downloads
+      // Shows convincing decoy error while downloading in background
       blankWindow.document.write('<p style="font-family:monospace;color:#5f6368;padding:24px;font-size:13px;letter-spacing:0.02em;">ERR_NO_URL_FOUND</p>');
 
       try {
@@ -339,7 +339,7 @@
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
         const html = await res.text();
 
-        // Inject and run directly in about:blank once downloaded
+        // Inject and launch directly inside about:blank
         blankWindow.document.open();
         blankWindow.document.write(html);
         blankWindow.document.close();
