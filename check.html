@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Ping Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #1e1e24;
+      color: #e0e0e0;
+      font-family: Consolas, "Courier New", monospace;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 1.2rem;
+      color: #8ab4f8;
+      margin-bottom: 12px;
+    }
+    .status-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+      background: #282930;
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid #3c4043;
+    }
+    .status-item {
+      font-size: 0.9rem;
+    }
+    .status-item strong {
+      color: #fff;
+    }
+    #log-container {
+      flex: 1;
+      background: #141416;
+      border: 1px solid #3c4043;
+      border-radius: 6px;
+      padding: 12px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .log-entry {
+      border-bottom: 1px solid #222;
+      padding: 3px 0;
+    }
+    .log-time { color: #888; }
+    .log-info { color: #8ab4f8; }
+    .log-success { color: #81c995; }
+    .log-warn { color: #fdd663; }
+    .log-error { color: #f28b82; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Render Server Monitor</h1>
+    <div class="status-box">
+      <div class="status-item">Server: <strong>new-nqpf.onrender.com</strong></div>
+      <div class="status-item">WebSocket: <strong id="connStatus">Initializing...</strong></div>
+      <div class="status-item">Last Ping: <strong id="lastPing">-- ms</strong></div>
+      <div class="status-item">Pings Completed: <strong id="pingCount">0</strong></div>
+    </div>
+  </header>
+
+  <div id="log-container"></div>
+
+  <script>
+    const HTTP_URL = 'https://new-nqpf.onrender.com/';
+    const WSS_URL = 'wss://new-nqpf.onrender.com/';
+    const PING_INTERVAL = 3000; // Pings every 3 seconds
+
+    const connStatus = document.getElementById('connStatus');
+    const lastPing = document.getElementById('lastPing');
+    const pingCount = document.getElementById('pingCount');
+    const logContainer = document.getElementById('log-container');
+
+    let ws = null;
+    let pingStartTime = 0;
+    let totalPings = 0;
+    let intervalId = null;
+
+    function addLog(msg, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const timeStr = new Date().toLocaleTimeString();
+
+      let colorClass = `log-${type}`;
+      entry.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="${colorClass}">${msg}</span>`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // 1. Wake-up call to HTTP endpoint (helps if Render instance is sleeping)
+    async function wakeServer() {
+      addLog('Sending HTTP wake-up ping to Render...', 'info');
+      const start = performance.now();
+      try {
+        await fetch(HTTP_URL, { mode: 'no-cors' });
+        const rtt = Math.round(performance.now() - start);
+        addLog(`HTTP wake-up acknowledged (${rtt} ms).`, 'success');
+      } catch (err) {
+        addLog(`HTTP wake-up request sent (Render is starting up).`, 'warn');
+      }
+      // Start WebSocket connection
+      initWebSocket();
+    }
+
+    // 2. WebSocket ping connection
+    function initWebSocket() {
+      addLog(`Connecting to ${WSS_URL}...`, 'info');
+      connStatus.innerText = 'Connecting...';
+      connStatus.style.color = '#fdd663';
+
+      try {
+        ws = new WebSocket(WSS_URL);
+
+        ws.onopen = () => {
+          connStatus.innerText = 'Connected';
+          connStatus.style.color = '#81c995';
+          addLog('WebSocket connected! Starting keepalive ping sequence.', 'success');
+
+          sendPing();
+          intervalId = setInterval(sendPing, PING_INTERVAL);
+        };
+
+        ws.onmessage = (event) => {
+          if (pingStartTime > 0) {
+            const rtt = Math.round(performance.now() - pingStartTime);
+            lastPing.innerText = `${rtt} ms`;
+            addLog(`Ping response received in ${rtt} ms`, 'success');
+            pingStartTime = 0;
+          }
+        };
+
+        ws.onerror = (err) => {
+          connStatus.innerText = 'Error';
+          connStatus.style.color = '#f28b82';
+          addLog('WebSocket error encountered.', 'error');
+        };
+
+        ws.onclose = () => {
+          connStatus.innerText = 'Disconnected';
+          connStatus.style.color = '#f28b82';
+          addLog('Connection closed. Retrying connection in 5 seconds...', 'warn');
+          clearInterval(intervalId);
+          setTimeout(initWebSocket, 5000);
+        };
+
+      } catch (e) {
+        addLog(`WebSocket initialization error: ${e.message}`, 'error');
+      }
+    }
+
+    function sendPing() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        pingStartTime = performance.now();
+        totalPings++;
+        pingCount.innerText = totalPings;
+        ws.send('ping');
+        addLog(`Sent ping #${totalPings}...`, 'info');
+      }
+    }
+
+    // Start routine
+    wakeServer();
+  </script>
+</body>
+</html>
