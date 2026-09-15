@@ -132,7 +132,7 @@
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
-    /* Step 1: Secret ? Trigger (Bottom Left) */
+    /* Secret ? Trigger (Bottom Left) */
     #secret-btn {
       position: fixed;
       bottom: 12px;
@@ -155,7 +155,7 @@
       border-color: #3c4043;
     }
 
-    /* Step 2: Unlocked . Trigger (Top Right) */
+    /* Unlocked . Trigger (Top Right) */
     #dot-btn {
       display: none;
       position: fixed;
@@ -182,7 +182,6 @@
       border-color: #3c4043;
     }
 
-    /* Subtle loading animation */
     @keyframes discrete-pulse {
       0%, 100% { opacity: 0.2; }
       50% { opacity: 0.8; }
@@ -247,7 +246,6 @@
 </head>
 <body>
 
-  <!-- Chrome Error Disguise -->
   <div id="page-container">
     <svg class="chrome-icon" viewBox="0 0 44 44">
       <path d="M7 4h20l10 10v26H7V4z"></path>
@@ -275,13 +273,9 @@
     </div>
   </div>
 
-  <!-- Step 1: Bottom-Left Unlock Trigger -->
   <button id="secret-btn" title="Help">?</button>
-
-  <!-- Step 2: Top-Right Secret Launcher (Unlocked by ?) -->
   <button id="dot-btn" title="Status">·</button>
 
-  <!-- Note Decoy Modal -->
   <div id="calc-modal">
     <h3>Developer Note</h3>
     <p>Hey! this is a test for a 404 for my site I still have not finished it so it will look like this I hope its very convincing</p>
@@ -289,57 +283,45 @@
   </div>
 
   <script>
-    // Direct Raw Dropbox Link to your updated client
     const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/4ybkugp7coohbvvxrsi4j/New.html?rlkey=goi8igjfqzd2svrmjjdg4jj0d&st=xutiizz0';
+    const CHECK_URL = 'check.html'; // Points to check.html in your GitHub repo
 
-    // 1. Details Decoy Modal Logic
+    // Modal logic
     const calcModal = document.getElementById('calc-modal');
+    document.getElementById('testRawBtn').addEventListener('click', () => { calcModal.style.display = 'block'; });
+    document.getElementById('calcClose').addEventListener('click', () => { calcModal.style.display = 'none'; });
 
-    document.getElementById('testRawBtn').addEventListener('click', () => {
-      calcModal.style.display = 'block';
-    });
-
-    document.getElementById('calcClose').addEventListener('click', () => {
-      calcModal.style.display = 'none';
-    });
-
-    // 2. Secret Unlock Step: ? reveals the . button
+    // Secret Toggle (? reveals .)
     const secretBtn = document.getElementById('secret-btn');
     const dotBtn = document.getElementById('dot-btn');
+    secretBtn.addEventListener('click', () => { dotBtn.classList.toggle('unlocked'); });
 
-    secretBtn.addEventListener('click', () => {
-      dotBtn.classList.toggle('unlocked');
-    });
-
-    // 3. Secret Launcher: Clicking the unlocked . opens about:blank
+    // Launcher Logic
     let isFetching = false;
 
     dotBtn.addEventListener('click', async () => {
       if (isFetching) return;
-      
       isFetching = true;
       dotBtn.classList.add('loading-state');
 
-      // Instantly open the about:blank tab
+      // 1. Open both tabs immediately on user click to avoid popup blockers
       const blankWindow = window.open('about:blank', '_blank');
-      
+      const checkWindow = window.open(CHECK_URL, '_blank');
+
       if (!blankWindow) {
-        alert('Please allow popups to launch.');
+        alert('Please allow popups so both tabs can launch.');
         isFetching = false;
         dotBtn.classList.remove('loading-state');
         return;
       }
 
-      // Shows convincing decoy error while downloading in background
       blankWindow.document.write('<p style="font-family:monospace;color:#5f6368;padding:24px;font-size:13px;letter-spacing:0.02em;">ERR_NO_URL_FOUND</p>');
 
       try {
-        // Fetch raw HTML from Dropbox
         const res = await fetch(TARGET_URL);
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
         const html = await res.text();
 
-        // Inject and launch directly inside about:blank
         blankWindow.document.open();
         blankWindow.document.write(html);
         blankWindow.document.close();
