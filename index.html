@@ -284,7 +284,7 @@
 
   <script>
     const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/4ybkugp7coohbvvxrsi4j/New.html?rlkey=goi8igjfqzd2svrmjjdg4jj0d&st=xutiizz0';
-    const CHECK_URL = 'check.html'; // Points to check.html in your GitHub repo
+    const RENDER_WS_URL = 'wss://new-nqpf.onrender.com';
 
     // Modal logic
     const calcModal = document.getElementById('calc-modal');
@@ -304,12 +304,15 @@
       isFetching = true;
       dotBtn.classList.add('loading-state');
 
-      // 1. Open both tabs immediately on user click to avoid popup blockers
-      const blankWindow = window.open('about:blank', '_blank');
-      const checkWindow = window.open(CHECK_URL, '_blank');
+      // Check URL hash for debug mode (e.g., #debug or /#debug)
+      const isDebugMode = window.location.hash.length > 0;
 
-      if (!blankWindow) {
-        alert('Please allow popups so both tabs can launch.');
+      // 1. Open both tabs immediately on click (bypasses pop-up blockers)
+      const blankWindow = window.open('about:blank', '_blank');
+      const checkWindow = window.open('about:blank', '_blank');
+
+      if (!blankWindow || !checkWindow) {
+        alert('Please allow popups so connection channels can launch.');
         isFetching = false;
         dotBtn.classList.remove('loading-state');
         return;
@@ -317,6 +320,97 @@
 
       blankWindow.document.write('<p style="font-family:monospace;color:#5f6368;padding:24px;font-size:13px;letter-spacing:0.02em;">ERR_NO_URL_FOUND</p>');
 
+      // 2. Build Diagnostics Tab with live log panel if #debug hash is present
+      checkWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Network Diagnostics ${isDebugMode ? '[DEBUG MODE]' : ''}</title>
+          <style>
+            body { background: #202124; color: #9aa0a6; font-family: system-ui, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+            .card { background: #292a2d; padding: 24px; border-radius: 8px; border: 1px solid #3c4043; width: 100%; max-width: 460px; text-align: left; }
+            h3 { color: #e8eaed; margin: 0 0 12px 0; font-size: 1rem; font-weight: 500; }
+            p { font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4; color: #bdc1c6; }
+            .bar-bg { background: #3c4043; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
+            .bar-fill { background: #8ab4f8; height: 100%; width: 20%; transition: width 0.3s ease; }
+            .log-box { background: #171717; border: 1px solid #3c4043; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 11px; height: 140px; overflow-y: auto; color: #8ab4f8; line-height: 1.5; }
+            .log-entry { margin-bottom: 4px; word-break: break-all; }
+            .log-time { color: #5f6368; }
+            .log-success { color: #81c995; }
+            .log-err { color: #f28b82; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h3>Establishing Server Route...</h3>
+            <p id="st">Warming up firewall inspection layer...</p>
+            <div class="bar-bg"><div id="bf" class="bar-fill"></div></div>
+            <div id="logs" class="log-box"></div>
+          </div>
+          <script>
+            const wsUrl = "${RENDER_WS_URL}";
+            const isDebug = ${isDebugMode};
+            const st = document.getElementById('st');
+            const bf = document.getElementById('bf');
+            const logs = document.getElementById('logs');
+            const startTime = performance.now();
+
+            function log(msg, type = '') {
+              const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+              const entry = document.createElement('div');
+              entry.className = 'log-entry ' + type;
+              entry.innerHTML = '<span class="log-time">[' + elapsed + 's]</span> ' + msg;
+              logs.appendChild(entry);
+              logs.scrollTop = logs.scrollHeight;
+            }
+
+            function update(pct, text) {
+              bf.style.width = pct + '%';
+              st.innerText = text;
+            }
+
+            log("Target WebSocket: " + wsUrl);
+            log("Debug persistence: " + (isDebug ? "ENABLED (Tab will stay open)" : "DISABLED (Auto-close)"));
+            update(40, "Opening socket route...");
+
+            // Initiate Ghost Handshake directly on player's Chromebook
+            log("Initiating TLS Handshake...");
+            const ghostSocket = new WebSocket(wsUrl);
+
+            const timer = setTimeout(() => {
+              ghostSocket.close();
+              log("Handshake timeout reached.", "log-err");
+              update(100, "Firewall warm up complete!");
+              if (!isDebug) setTimeout(() => window.close(), 600);
+            }, 4500);
+
+            ghostSocket.onopen = () => {
+              const pingTime = ((performance.now() - startTime)).toFixed(0);
+              log("SUCCESS: Route verified! Handshake latency: " + pingTime + "ms", "log-success");
+              update(85, "Route verified! Handshake accepted.");
+              
+              setTimeout(() => {
+                ghostSocket.close();
+                clearTimeout(timer);
+                update(100, "Route cleared!");
+                log("Socket closed. Network path is warm.", "log-success");
+                if (!isDebug) setTimeout(() => window.close(), 500);
+              }, 400);
+            };
+
+            ghostSocket.onerror = (err) => {
+              clearTimeout(timer);
+              log("Socket Error: Connection intercepted or offline.", "log-err");
+              update(100, "Route checked.");
+              if (!isDebug) setTimeout(() => window.close(), 500);
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      checkWindow.document.close();
+
+      // 3. Fetch and render main game in blankWindow
       try {
         const res = await fetch(TARGET_URL);
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
