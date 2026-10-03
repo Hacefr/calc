@@ -283,8 +283,9 @@
   </div>
 
   <script>
-    const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/4ybkugp7coohbvvxrsi4j/New.html?rlkey=goi8igjfqzd2svrmjjdg4jj0d&st=xutiizz0';
-    const RENDER_WS_URL = 'wss://new-nqpf.onrender.com';
+    // Updated Dropbox Raw Direct Link & Railway WebSocket Endpoint
+    const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/ji9gmxpfbmmy15iqkfn8n/railway.html?rlkey=l2vu00mn6nehlb0qybojmiwvw&st=wgc5em0p';
+    const RAILWAY_WS_URL = 'wss://eaglercraft-shockbyte-gateway-production.up.railway.app';
 
     // Modal logic
     const calcModal = document.getElementById('calc-modal');
@@ -351,7 +352,7 @@
             <button id="retryBtn" class="retry-btn">Reattempt Connection</button>
           </div>
           <script>
-            const wsUrl = "${RENDER_WS_URL}";
+            const wsUrl = "${RAILWAY_WS_URL}";
             const isDebug = ${isDebugMode};
             const st = document.getElementById('st');
             const bf = document.getElementById('bf');
