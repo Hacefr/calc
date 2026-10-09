@@ -286,9 +286,9 @@
     const RAILWAY_WS_URL   = 'wss://eaglercraft-shockbyte-gateway-production.up.railway.app';
 
     const GITHUB_REPO = 'Hacefr/calc';
-    // Set this to your latest commit SHA or release tag (e.g. 'f4b1a2c' or 'v1.0')
-    // Set to 'latest' if you want it to always stay '(Up to date!)' until you change it.
-    const CURRENT_BUILD_REF = 'latest';
+
+    // Set to 'auto' to automatically detect new commits pushed while the page is open
+    const CURRENT_BUILD_REF = 'auto';
 
     // Decoy Modal logic
     const calcModal = document.getElementById('calc-modal');
@@ -320,10 +320,10 @@
         return;
       }
 
-      // Step 1: Initial Fake Error in the target window
+      // Step 1: Initial Fake Error in target window
       blankWindow.document.write('<p style="font-family:monospace;color:#5f6368;padding:24px;font-size:13px;letter-spacing:0.02em;">ERR_NO_URL_FOUND</p>');
 
-      // Step 2: Diagnostics window runs handshake
+      // Step 2: Diagnostics window runs WebSocket handshake
       checkWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -516,6 +516,7 @@
                 font-weight: 500;
                 color: #80868b;
                 letter-spacing: 0.01em;
+                transition: color 0.3s ease;
               }
               .status-line.up-to-date {
                 color: #81c995;
@@ -551,50 +552,64 @@
         const repoStatus = blankWindow.document.getElementById('repoStatus');
         const statusMsg = blankWindow.document.getElementById('loadStatus');
 
-        // Check Hacefr/calc repository status
-        async function runRepoCheck() {
+        // Dynamic Real-Time Update Checker
+        let baselineSha = null;
+        let isChecking = false;
+        let lastCheckTime = 0;
+
+        async function checkRepoForUpdates() {
+          const now = Date.now();
+          // Safety throttle: minimum 15 seconds between requests
+          if (isChecking || (now - lastCheckTime < 15000)) return;
+          isChecking = true;
+          lastCheckTime = now;
+
           try {
-            const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=1`);
+            const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=1&t=${now}`);
             if (res.ok) {
               const commits = await res.json();
               if (commits && commits.length > 0) {
                 const latestSha = commits[0].sha;
-                if (CURRENT_BUILD_REF === 'latest' || latestSha.startsWith(CURRENT_BUILD_REF)) {
-                  repoStatus.innerText = '(Up to date!)';
-                  repoStatus.className = 'status-line up-to-date';
-                } else {
+
+                // Save initial commit on first load
+                if (!baselineSha) {
+                  baselineSha = (CURRENT_BUILD_REF === 'auto') ? latestSha : CURRENT_BUILD_REF;
+                }
+
+                // Detect if repo has updated
+                if (latestSha !== baselineSha && !latestSha.startsWith(baselineSha)) {
                   repoStatus.innerText = '(A update might be required)';
                   repoStatus.className = 'status-line update-needed';
+                } else {
+                  repoStatus.innerText = '(Up to date!)';
+                  repoStatus.className = 'status-line up-to-date';
                 }
-                return;
               }
             }
-
-            // Fallback for releases
-            const relRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-            if (relRes.ok) {
-              const rel = await relRes.json();
-              if (CURRENT_BUILD_REF === 'latest' || rel.tag_name === CURRENT_BUILD_REF) {
-                repoStatus.innerText = '(Up to date!)';
-                repoStatus.className = 'status-line up-to-date';
-              } else {
-                repoStatus.innerText = '(A update might be required)';
-                repoStatus.className = 'status-line update-needed';
-              }
-              return;
-            }
-
-            repoStatus.innerText = '(Up to date!)';
-            repoStatus.className = 'status-line up-to-date';
           } catch (e) {
-            repoStatus.innerText = '(Up to date!)';
-            repoStatus.className = 'status-line up-to-date';
+            if (!repoStatus.innerText.includes('update')) {
+              repoStatus.innerText = '(Up to date!)';
+              repoStatus.className = 'status-line up-to-date';
+            }
+          } finally {
+            isChecking = false;
           }
         }
-        runRepoCheck();
 
-        // Launch Game payload
+        // 1. Initial check
+        checkRepoForUpdates();
+
+        // 2. Immediate check when switching tabs back to the launcher
+        blankWindow.addEventListener('focus', checkRepoForUpdates);
+
+        // 3. Periodic check every 60s
+        const updateInterval = blankWindow.setInterval(checkRepoForUpdates, 60000);
+
+        // Payload Loader
         async function loadGame(url, clickedBtn) {
+          blankWindow.clearInterval(updateInterval);
+          blankWindow.removeEventListener('focus', checkRepoForUpdates);
+
           v112Btn.disabled = true;
           v121Btn.disabled = true;
           clickedBtn.innerText = 'Loading...';
