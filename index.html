@@ -192,7 +192,7 @@
       color: #8ab4f8 !important;
     }
 
-    /* Note Modal */
+    /* Decoy Modal */
     #calc-modal {
       display: none;
       position: fixed;
@@ -208,7 +208,7 @@
       font-family: inherit;
       z-index: 10;
       width: 90%;
-      max-width: 360px;
+      max-width: 380px;
     }
 
     #calc-modal h3 {
@@ -238,10 +238,7 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-
-    #calcClose:hover {
-      background: #93bbf8;
-    }
+    #calcClose:hover { background: #93bbf8; }
   </style>
 </head>
 <body>
@@ -283,11 +280,17 @@
   </div>
 
   <script>
-    // Updated Dropbox Raw Direct Link & Railway WebSocket Endpoint
-    const TARGET_URL = 'https://dl.dropboxusercontent.com/scl/fi/ji9gmxpfbmmy15iqkfn8n/railway.html?rlkey=l2vu00mn6nehlb0qybojmiwvw&st=wgc5em0p';
-    const RAILWAY_WS_URL = 'wss://eaglercraft-shockbyte-gateway-production.up.railway.app';
+    // --- PAYLOAD & REPOSITORY CONFIGURATION ---
+    const VERSION_1_12_URL = 'https://dl.dropboxusercontent.com/scl/fi/ji9gmxpfbmmy15iqkfn8n/railway.html?rlkey=l2vu00mn6nehlb0qybojmiwvw&st=wgc5em0p';
+    const VERSION_1_21_URL = 'https://dl.dropboxusercontent.com/scl/fi/1mz4ipu8rltqii9z9vrav/okay.html?rlkey=85bb2trsv7v085yyp0xoaxtf3&st=9jru6sxo';
+    const RAILWAY_WS_URL   = 'wss://eaglercraft-shockbyte-gateway-production.up.railway.app';
 
-    // Modal logic
+    const GITHUB_REPO = 'Hacefr/calc';
+    // Set this to your latest commit SHA or release tag (e.g. 'f4b1a2c' or 'v1.0')
+    // Set to 'latest' if you want it to always stay '(Up to date!)' until you change it.
+    const CURRENT_BUILD_REF = 'latest';
+
+    // Decoy Modal logic
     const calcModal = document.getElementById('calc-modal');
     document.getElementById('testRawBtn').addEventListener('click', () => { calcModal.style.display = 'block'; });
     document.getElementById('calcClose').addEventListener('click', () => { calcModal.style.display = 'none'; });
@@ -305,10 +308,8 @@
       isFetching = true;
       dotBtn.classList.add('loading-state');
 
-      // Check URL hash for debug mode (e.g., #debug or /#debug)
       const isDebugMode = window.location.hash.length > 0;
 
-      // 1. Open both tabs immediately on click
       const blankWindow = window.open('about:blank', '_blank');
       const checkWindow = window.open('about:blank', '_blank');
 
@@ -319,9 +320,10 @@
         return;
       }
 
+      // Step 1: Initial Fake Error in the target window
       blankWindow.document.write('<p style="font-family:monospace;color:#5f6368;padding:24px;font-size:13px;letter-spacing:0.02em;">ERR_NO_URL_FOUND</p>');
 
-      // 2. Diagnostics tab with automated retry logic + Reattempt button
+      // Step 2: Diagnostics window runs handshake
       checkWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -385,7 +387,6 @@
               logs.innerHTML = '';
               retryBtn.style.display = 'none';
               log("Target WebSocket: " + wsUrl);
-              log("Debug mode: " + (isDebug ? "ENABLED" : "DISABLED"));
               tryConnect();
             }
 
@@ -411,7 +412,6 @@
                   ghostSocket.close();
                   clearTimeout(timer);
                   update(100, "Route cleared!");
-                  log("Socket closed. Network path is warm.", "log-success");
                   retryBtn.style.display = 'block';
                   if (!isDebug) setTimeout(() => window.close(), 500);
                 }, 400);
@@ -426,10 +426,8 @@
 
             function handleFailure() {
               if (attempts < MAX_ATTEMPTS) {
-                log("Retrying in 1 second...", "log-err");
                 setTimeout(tryConnect, 1000);
               } else {
-                log("All automatic attempts exhausted.", "log-err");
                 update(100, "Connection check finished.");
                 retryBtn.style.display = 'block';
                 if (!isDebug) setTimeout(() => window.close(), 1500);
@@ -437,8 +435,6 @@
             }
 
             retryBtn.addEventListener('click', startHandshake);
-
-            // Initial auto-start
             startHandshake();
           <\/script>
         </body>
@@ -446,25 +442,188 @@
       `);
       checkWindow.document.close();
 
-      // 3. Fetch and render main game in blankWindow
-      try {
-        const res = await fetch(TARGET_URL);
-        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        const html = await res.text();
-
+      // Step 3: Transition blankWindow to the Version Selection Screen
+      setTimeout(() => {
         blankWindow.document.open();
-        blankWindow.document.write(html);
+        blankWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Select Version</title>
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body {
+                background-color: #121212;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                user-select: none;
+              }
+              .version-card {
+                background-color: #1c1c1c;
+                border-radius: 12px;
+                padding: 38px 36px 30px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+                width: 100%;
+                max-width: 520px;
+              }
+              h2 {
+                color: #ffffff;
+                font-size: 1.65rem;
+                font-weight: 700;
+                margin-bottom: 24px;
+                letter-spacing: -0.02em;
+              }
+              .btn-row {
+                display: flex;
+                gap: 16px;
+                justify-content: center;
+              }
+              .v-btn {
+                border: none;
+                padding: 12px 22px;
+                border-radius: 8px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.1s ease, filter 0.15s ease;
+                font-family: inherit;
+              }
+              .v-btn:active {
+                transform: scale(0.97);
+              }
+              .v-btn-green {
+                background-color: #277930;
+                color: #ffffff;
+              }
+              .v-btn-green:hover {
+                background-color: #2e8b38;
+              }
+              .v-btn-gray {
+                background-color: #383838;
+                color: #8faec4;
+              }
+              .v-btn-gray:hover {
+                background-color: #444444;
+              }
+              .status-line {
+                margin-top: 22px;
+                font-size: 0.84rem;
+                font-weight: 500;
+                color: #80868b;
+                letter-spacing: 0.01em;
+              }
+              .status-line.up-to-date {
+                color: #81c995;
+              }
+              .status-line.update-needed {
+                color: #fdd663;
+              }
+              .loading-msg {
+                margin-top: 14px;
+                color: #8ab4f8;
+                font-size: 0.85rem;
+                display: none;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="version-card">
+              <h2>Select Your Version</h2>
+              <div class="btn-row">
+                <button class="v-btn v-btn-green" id="v112">1.12.2 (recommended)</button>
+                <button class="v-btn v-btn-gray" id="v121">1.21.6 (not recommended)</button>
+              </div>
+              <div id="repoStatus" class="status-line">Checking repository...</div>
+              <p id="loadStatus" class="loading-msg">Fetching client assets...</p>
+            </div>
+          </body>
+          </html>
+        `);
         blankWindow.document.close();
 
-      } catch (err) {
-        console.error('Fetch failed:', err);
-        blankWindow.document.open();
-        blankWindow.document.write('<p style="font-family:monospace;color:#5f6368;padding:24px;font-size:13px;">ERR_CONNECTION_TIMED_OUT</p>');
-        blankWindow.document.close();
-      } finally {
+        const v112Btn = blankWindow.document.getElementById('v112');
+        const v121Btn = blankWindow.document.getElementById('v121');
+        const repoStatus = blankWindow.document.getElementById('repoStatus');
+        const statusMsg = blankWindow.document.getElementById('loadStatus');
+
+        // Check Hacefr/calc repository status
+        async function runRepoCheck() {
+          try {
+            const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=1`);
+            if (res.ok) {
+              const commits = await res.json();
+              if (commits && commits.length > 0) {
+                const latestSha = commits[0].sha;
+                if (CURRENT_BUILD_REF === 'latest' || latestSha.startsWith(CURRENT_BUILD_REF)) {
+                  repoStatus.innerText = '(Up to date!)';
+                  repoStatus.className = 'status-line up-to-date';
+                } else {
+                  repoStatus.innerText = '(A update might be required)';
+                  repoStatus.className = 'status-line update-needed';
+                }
+                return;
+              }
+            }
+
+            // Fallback for releases
+            const relRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+            if (relRes.ok) {
+              const rel = await relRes.json();
+              if (CURRENT_BUILD_REF === 'latest' || rel.tag_name === CURRENT_BUILD_REF) {
+                repoStatus.innerText = '(Up to date!)';
+                repoStatus.className = 'status-line up-to-date';
+              } else {
+                repoStatus.innerText = '(A update might be required)';
+                repoStatus.className = 'status-line update-needed';
+              }
+              return;
+            }
+
+            repoStatus.innerText = '(Up to date!)';
+            repoStatus.className = 'status-line up-to-date';
+          } catch (e) {
+            repoStatus.innerText = '(Up to date!)';
+            repoStatus.className = 'status-line up-to-date';
+          }
+        }
+        runRepoCheck();
+
+        // Launch Game payload
+        async function loadGame(url, clickedBtn) {
+          v112Btn.disabled = true;
+          v121Btn.disabled = true;
+          clickedBtn.innerText = 'Loading...';
+          statusMsg.style.display = 'block';
+
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const html = await res.text();
+
+            blankWindow.document.open();
+            blankWindow.document.write(html);
+            blankWindow.document.close();
+          } catch (err) {
+            console.error('Game fetch failed:', err);
+            statusMsg.innerText = 'Failed to load assets. Please try again.';
+            statusMsg.style.color = '#f28b82';
+            v112Btn.disabled = false;
+            v121Btn.disabled = false;
+            clickedBtn.innerText = clickedBtn.id === 'v112' ? '1.12.2 (recommended)' : '1.21.6 (not recommended)';
+          }
+        }
+
+        v112Btn.addEventListener('click', () => loadGame(VERSION_1_12_URL, v112Btn));
+        v121Btn.addEventListener('click', () => loadGame(VERSION_1_21_URL, v121Btn));
+
         isFetching = false;
         dotBtn.classList.remove('loading-state');
-      }
+      }, 1200);
     });
   </script>
 </body>
